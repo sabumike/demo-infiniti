@@ -28,7 +28,7 @@ Following configuration items  (Value) can be modified in the cloudformation scr
 - the script can be run in AWS console under Cloudformation services. (or) 
 - the script can be run in a AWS command line with the following syntax.
 
-**change the file location to the folder where you download this script.
+**change the file location to the folder where you download this script.**
 #### Prompt> aws cloudformation create-stack --stack-name demoinfiniti --template-body file://demo_.template
 
 
