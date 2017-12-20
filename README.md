@@ -23,6 +23,10 @@ Following configuration items  (Value) can be modified in the cloudformation scr
 				"PublicCidrC": {"Value":"10.0.0.64/27"},
 				"ImageID": {"Value":"ami-b04e92d0"},
 				"InstanceType": {"Value":"t2.micro"}
+				
+## Script Output
+- Check the output on AWS console --> under Cloudformation --> output in the lower bottom tabs.
+	- These outputs provide the URL for the webpage that displays "To Infiniti and beyond"
         
 ## Run the scripts
 - the script can be run in AWS console under Cloudformation services. (or) 
