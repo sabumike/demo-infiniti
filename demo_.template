@@ -1,0 +1,255 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Demo Environment",
+	"Metadata": {
+       "About": {
+           "Author": {"value": "Michael Sampath"},
+           "CreatedDate": {"Value": "December 18, 2017"},
+           "Contact": {"Value": "msampa@gmail.com"},
+           "UpdatedDate": {"Value": "December 19, 2017"}
+         }
+    },
+	
+
+	"Mappings":{
+		"CustomVariables": { 
+				"GeneralName": {"Value": "demo"},
+				"EnvName": {"Value": "demo"},
+				"KeyName": {"Value":"infiniti-keypair"},
+				"RegionAZNameA": {"Value":"us-west-2a"},
+				"RegionAZNameC": {"Value":"us-west-2c"},
+				"VPCName": {"Value":"Demo VPC"},
+				"VpcCidrBlock": {"Value":"10.0.0.0/24"},
+				"PublicCidrA": {"Value":"10.0.0.0/27"},
+				"PublicCidrC": {"Value":"10.0.0.64/27"},
+				"ImageID": {"Value":"ami-b04e92d0"},
+				"InstanceType": {"Value":"t2.micro"}
+				
+		}
+	},
+
+	"Resources": {
+		"demoVPC": {
+			"Description": "Demo VPC",
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock":  { "Fn::FindInMap": ["CustomVariables", "VpcCidrBlock", "Value"]},
+			 	"Tags": [
+                  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","vpc"]]}}
+              ]
+			}
+		},
+
+		"demoInternetGateway": {
+			"Description": "Internet Gateway for Demo VPC",
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				 "Tags": [
+                  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-igw"]]}}
+              ]
+			}
+		},
+	
+		"demoAttachGateway": {
+			"Description": "Attach Demo IG to the Demo VPC",
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"VpcId": { "Ref" : "demoVPC" },
+				"InternetGatewayId": { "Ref" : "demoInternetGateway" }
+			}
+		},
+	
+		"demoSubnetPubA": {
+			"Description": "Demo Public SubNet A",
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Fn::FindInMap": ["CustomVariables", "RegionAZNameA", "Value"]},
+				"CidrBlock":  { "Fn::FindInMap": ["CustomVariables", "PublicCidrA", "Value"]},
+				"VpcId": { "Ref" : "demoVPC" },
+				"MapPublicIpOnLaunch": "true",
+				"Tags": [
+     			  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-sub-pub-a"]] }}
+				  ]
+			}
+		},
+
+		"demoSubnetPubC": {
+			"Description": "Demo Public SubNet C",
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Fn::FindInMap": ["CustomVariables", "RegionAZNameC", "Value"]},
+				"CidrBlock":  { "Fn::FindInMap": ["CustomVariables", "PublicCidrC", "Value"]},
+				"VpcId": { "Ref" : "demoVPC" },
+				"MapPublicIpOnLaunch": "true",
+				"Tags": [
+     			  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-sub-pub-c"]] }}
+				  ]
+			}
+		},
+
+		"demoRouteTable": {
+			"Description": "Demo Route Table",
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref" : "demoVPC" },
+				"Tags": [
+                  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-rt"]] }}
+				  ]
+			}
+		},
+
+		"demoRouteTableAssociationA": {
+			"Description": "Demo Route Table Association",
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId" : { "Ref" : "demoSubnetPubA" },
+				"RouteTableId": { "Ref" : "demoRouteTable" }
+			}
+		},
+
+		"demoRouteTableAssociationC": {
+			"Description": "Demo Route Table Association",
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId" : { "Ref" : "demoSubnetPubC" },
+				"RouteTableId": { "Ref" : "demoRouteTable" }
+			}
+		},		
+		
+		"demoRoute" :{
+			"Description": "Demo Route",
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "demoAttachGateway",
+			"Properties" : {
+				"RouteTableId": { "Ref" : "demoRouteTable" },
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId" : { "Ref" : "demoInternetGateway" }
+			}
+		},
+		"demoSecurityGroupPub": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": {"Ref": "AWS::StackName"},
+				"VpcId": { "Ref" : "demoVPC" },
+				"SecurityGroupIngress": [{
+					"CidrIp": "0.0.0.0/0",
+					"FromPort": 80,
+					"IpProtocol": "tcp",
+					"ToPort": 80
+				},
+				{
+					"CidrIp": "0.0.0.0/0",
+					"FromPort": 22,
+					"IpProtocol": "tcp",
+					"ToPort": 22
+				}  
+				],
+				"Tags": [
+                  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-sg-pub"]] }}
+				  ]
+			}
+		},
+
+		"demoEC2InstancePubA": {
+			"Type": "AWS::EC2::Instance",
+			"DependsOn": "demoAttachGateway",
+			"Properties": {
+				"ImageId": { "Fn::FindInMap": ["CustomVariables", "ImageID", "Value"]},
+				"InstanceType": { "Fn::FindInMap": ["CustomVariables", "InstanceType", "Value"]},
+				"KeyName": { "Fn::FindInMap": ["CustomVariables", "KeyName", "Value"]},
+				"SubnetId": { "Ref" : "demoSubnetPubA" },
+				"SecurityGroupIds": [{"Ref": "demoSecurityGroupPub"}],
+				"UserData": {"Fn::Base64": {"Fn::Join": ["\n", [
+					"#!/bin/bash -ex",
+					"yum install -y httpd",
+					"cd /var/www/html",
+					"echo '<html><body><p>To infiniti and beyond!</p></body></html>' > index.html",
+					"service httpd start"
+				]]}},
+				"Tags": [
+              	  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-ec2-pub-a"]] }}
+				  ]
+			}
+		},
+
+		"demoEC2InstancePubC": {
+			"Type": "AWS::EC2::Instance",
+			"DependsOn": "demoAttachGateway",
+			"Properties": {
+				"ImageId": { "Fn::FindInMap": ["CustomVariables", "ImageID", "Value"]},
+				"InstanceType": { "Fn::FindInMap": ["CustomVariables", "InstanceType", "Value"]},
+				"KeyName": { "Fn::FindInMap": ["CustomVariables", "KeyName", "Value"]},
+				"SubnetId": { "Ref" : "demoSubnetPubC" },
+				"SecurityGroupIds": [{"Ref": "demoSecurityGroupPub"}],
+				"UserData": {"Fn::Base64": {"Fn::Join": ["\n", [
+					"#!/bin/bash -ex",
+					"yum install -y httpd",
+					"cd /var/www/html",
+					"echo '<html><body><p>To infiniti and beyond!</p></body></html>' > index.html",
+					"service httpd start"
+				]]}},
+				"Tags": [
+              	  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-ec2-pub-c"]] }}
+				  ]
+			}
+		},
+
+	 	"ELBWebDemo": {
+           "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+           "Properties": {
+              "LoadBalancerName": { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-elb"]] },
+       	   	  "Listeners" : [ {
+            		"LoadBalancerPort" : "80",
+            		"InstancePort" : "80",
+            		"Protocol" : "HTTP"
+       			 } ],
+              "SecurityGroups" : [ {"Ref": "demoSecurityGroupPub"}],
+              "Subnets" : [ {"Ref": "demoSubnetPubA"}, { "Ref": "demoSubnetPubC"} ],
+      		  "HealthCheck" : {
+           		 	"Target" : "HTTP:80/",
+            		"HealthyThreshold" : "3",
+           			"UnhealthyThreshold" : "5",
+            		"Interval" : "30",
+            		"Timeout" : "5"
+       			},	
+              "Instances": [
+                  {"Ref": "demoEC2InstancePubA"},
+                  {"Ref": "demoEC2InstancePubC"}
+              ],
+     		  "Tags": [
+              	  {"Key": "Environment", "Value": { "Fn::FindInMap": ["CustomVariables", "GeneralName", "Value"]}},
+                  {"Key": "Application", "Value": {"Ref": "AWS::StackName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{ "Fn::FindInMap": ["CustomVariables", "EnvName", "Value"]},"-","demo-elb"]] }}
+				  ]
+           }
+        } 
+
+ 
+	},
+	"Outputs": {
+		"WebServerURA": {
+			"Description": "URL for Demo Web A",
+			"Value": {"Fn::Join": ["", ["http://", {"Fn::GetAtt": ["demoEC2InstancePubA", "PublicIp"]}]]}
+		},
+		"WebServerURLC": {
+			"Description": "URL for Demo Web C",
+			"Value": {"Fn::Join": ["", ["http://", {"Fn::GetAtt": ["demoEC2InstancePubC", "PublicIp"]}]]}
+		}
+	} 
+}
