@@ -37,4 +37,12 @@ Following configuration items  (Value) can be modified in the cloudformation scr
 
 
 
+# Automated Infrastructure Test - Verify the environment
 
+- The following URL will provide a list of all provisioned AWS service with the following inputs
+	- VPC ID
+	- Access key
+	- Access Secret
+	- Region
+	
+- http://52.26.89.110/ - this is a python code that list AWS services.
